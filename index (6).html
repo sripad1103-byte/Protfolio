@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Anirudh Bhogaraju — F1 Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#181818;
+  --red:#E8002D;--red2:#FF1E3C;
+  --gold:#FFD700;--cream:#F5F0E8;--muted:#777;--titanium:#aaa;
+  --border:#ffffff12;--border2:#ffffff1e;
+  --fd:'Barlow Condensed',sans-serif;
+  --fb:'Barlow',sans-serif;
+  --fm:'Share Tech Mono',monospace;
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--cream);font-family:var(--fb)}
+
+/* ── MAIN LAYOUT ── */
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* ── TOP HUD ── */
+#hud{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:space-between;align-items:center;padding:.75rem 2rem;background:rgba(10,10,10,.9);border-bottom:1px solid var(--border2);backdrop-filter:blur(12px)}
+.hud-logo{font-family:var(--fd);font-weight:900;font-size:1.3rem;letter-spacing:.06em;display:flex;align-items:center;gap:.5rem}
+.hud-logo .dot{width:7px;height:7px;background:var(--red);border-radius:50%;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hud-center{font-family:var(--fm);font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-align:center}
+.hud-center span{color:var(--red)}
+.hud-right{display:flex;gap:1rem;align-items:center}
+.hud-btn{font-family:var(--fm);font-size:.68rem;color:var(--red);border:1px solid var(--red)40;padding:.3rem .8rem;border-radius:3px;background:transparent;cursor:pointer;transition:all .2s;letter-spacing:.06em}
+.hud-btn:hover{background:var(--red)15}
+
+/* ── SCROLL HINT ── */
+#scroll-hint{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:200;font-family:var(--fm);font-size:.65rem;color:var(--muted);letter-spacing:.14em;text-align:center;pointer-events:none;transition:opacity .4s}
+#scroll-hint .arrow{color:var(--red);display:block;font-size:1rem;animation:bob .9s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(5px)}}
+
+/* ── TRACK SCENE ── */
+#scene{width:100%;height:100vh;position:relative;overflow:hidden;flex-shrink:0}
+
+/* Night sky */
+#scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 120% 80% at 50% 0%,#0d0a1a 0%,#0a0a0a 60%);z-index:0}
+
+/* Stars */
+#stars{position:absolute;inset:0;z-index:1;pointer-events:none}
+
+/* City skyline strip */
+#skyline{position:absolute;bottom:0;left:0;right:0;height:55%;z-index:2;pointer-events:none}
+
+/* Track SVG */
+#track-svg{position:absolute;inset:0;width:100%;height:100%;z-index:3}
+
+/* Car */
+#f1car{position:absolute;z-index:10;width:52px;height:24px;transform:translate(-50%,-50%);filter:drop-shadow(0 0 12px var(--red)) drop-shadow(0 2px 6px rgba(0,0,0,.8));transition:none;pointer-events:none}
+
+/* Pit stop markers */
+.pit-marker{position:absolute;transform:translate(-50%,-50%);z-index:15;cursor:pointer;transition:transform .2s}
+.pit-marker:hover{transform:translate(-50%,-50%) scale(1.15)}
+.pm-outer{width:48px;height:48px;border-radius:50%;border:2px solid var(--red);background:rgba(232,0,45,.12);display:flex;align-items:center;justify-content:center;position:relative;animation:pmPulse 2s ease-in-out infinite}
+.pit-marker.active .pm-outer{border-color:var(--gold);background:rgba(255,215,0,.18);animation:pmPulseGold 1s ease-in-out infinite}
+@keyframes pmPulse{0%,100%{box-shadow:0 0 0 0 rgba(232,0,45,.4)}50%{box-shadow:0 0 0 10px rgba(232,0,45,0)}}
+@keyframes pmPulseGold{0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,.5)}50%{box-shadow:0 0 0 12px rgba(255,215,0,0)}}
+.pm-num{font-family:var(--fd);font-weight:900;font-size:1rem;color:var(--cream);z-index:1}
+.pit-marker.active .pm-num{color:var(--gold)}
+.pm-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);font-family:var(--fm);font-size:.58rem;color:var(--red);letter-spacing:.08em;white-space:nowrap;opacity:0;transition:opacity .3s}
+.pit-marker.active .pm-label{opacity:1;color:var(--gold)}
+.pit-marker.near .pm-label{opacity:1}
+
+/* ── SPEED LINES ── */
+#speed-lines{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+
+/* ── ENTER PROMPT ── */
+#enter-prompt{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);z-index:200;background:rgba(10,10,10,.95);border:1px solid var(--gold);border-radius:6px;padding:.6rem 1.5rem;font-family:var(--fm);font-size:.75rem;color:var(--gold);letter-spacing:.1em;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:center;gap:.75rem}
+#enter-prompt.show{opacity:1;pointer-events:all}
+#enter-prompt .key{background:var(--gold);color:#000;border-radius:3px;padding:.1rem .4rem;font-size:.65rem;font-weight:700}
+
+/* ── PIT LANE OVERLAY ── */
+#pit-overlay{position:fixed;inset:0;z-index:500;display:flex;align-items:stretch;pointer-events:none;opacity:0;transition:opacity .4s}
+#pit-overlay.open{opacity:1;pointer-events:all}
+#pit-sidebar{width:min(560px,92vw);background:var(--bg2);border-right:1px solid var(--border2);overflow-y:auto;transform:translateX(-100%);transition:transform .5s cubic-bezier(.16,1,.3,1);padding:0}
+#pit-overlay.open #pit-sidebar{transform:translateX(0)}
+#pit-backdrop{flex:1;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);cursor:pointer}
+/* Sidebar header */
+.psb-header{padding:2rem;border-bottom:1px solid var(--border2);background:var(--bg3);position:sticky;top:0;z-index:10}
+.psb-stop{font-family:var(--fm);font-size:.65rem;color:var(--red);letter-spacing:.14em;margin-bottom:.4rem}
+.psb-title{font-family:var(--fd);font-weight:900;font-size:2.2rem;text-transform:uppercase;letter-spacing:.02em;line-height:.95}
+.psb-title .acc{color:var(--red)}
+.psb-close{position:absolute;top:1.5rem;right:1.5rem;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;font-family:var(--fm);transition:color .2s}
+.psb-close:hover{color:var(--red)}
+/* Sidebar content */
+.psb-body{padding:2rem}
+/* Exp cards */
+.psb-card{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden;transition:border-color .2s}
+.psb-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)}
+.psb-card:hover{border-color:var(--red)40}
+.psb-role{font-family:var(--fd);font-size:1.25rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:.2rem}
+.psb-company{font-family:var(--fm);font-size:.7rem;color:var(--red);margin-bottom:.1rem}
+.psb-date{font-family:var(--fm);font-size:.65rem;color:var(--muted);margin-bottom:.85rem}
+.psb-bullets{list-style:none;display:flex;flex-direction:column;gap:.4rem}
+.psb-bullets li{font-size:.88rem;color:var(--muted);padding-left:1.2rem;position:relative;line-height:1.6}
+.psb-bullets li::before{content:'▶';position:absolute;left:0;color:var(--red);font-size:.5rem;top:.35rem}
+.psb-bullets li strong{color:var(--cream)}
+/* Project cards */
+.proj-num{font-family:var(--fd);font-weight:900;font-size:3.5rem;color:var(--border2);line-height:1;float:right;margin-left:1rem;transition:color .2s}
+.psb-card:hover .proj-num{color:var(--red)25}
+.proj-title{font-family:var(--fd);font-size:1.4rem;font-weight:800;text-transform:uppercase;margin-bottom:.4rem}
+.proj-desc{font-size:.875rem;color:var(--muted);line-height:1.65;margin-bottom:.85rem}
+.proj-metric{font-family:var(--fd);font-size:2rem;font-weight:900;color:var(--red);line-height:1}
+.proj-metric-lbl{font-family:var(--fm);font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.85rem}
+.tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem}
+.tag{font-family:var(--fm);font-size:.62rem;padding:.2rem .55rem;border-radius:3px}
+.tr{background:var(--red)15;color:#ff6680;border:1px solid var(--red)25}
+.tg{background:#FFD70015;color:#FFD70088;border:1px solid #FFD70022}
+.tw{background:#ffffff08;color:var(--titanium);border:1px solid var(--border)}
+/* Skill gauges */
+.gauge-row{margin-bottom:.85rem}
+.gauge-top{display:flex;justify-content:space-between;margin-bottom:.35rem}
+.gauge-name{font-family:var(--fd);font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.gauge-pct{font-family:var(--fm);font-size:.7rem;color:var(--red)}
+.gauge-track{height:3px;background:var(--border2);border-radius:99px;overflow:hidden}
+.gauge-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:99px;transform:scaleX(0);transform-origin:left;transition:transform 1s cubic-bezier(.16,1,.3,1)}
+.gauge-fill.go{transform:scaleX(1)}
+.gauge-cat{font-family:var(--fm);font-size:.6rem;color:var(--muted);margin-top:.2rem;text-transform:uppercase;letter-spacing:.06em}
+/* Pub card */
+.pub-row{display:flex;gap:1rem;align-items:flex-start;margin-bottom:1rem}
+.pub-badge{font-family:var(--fm);font-size:.6rem;color:var(--red);border:1px solid var(--red)30;border-radius:3px;padding:.25rem .6rem;white-space:nowrap;flex-shrink:0;letter-spacing:.06em}
+.pub-title{font-family:var(--fd);font-size:1.1rem;font-weight:700;text-transform:uppercase;margin-bottom:.2rem}
+.pub-venue{font-size:.82rem;color:var(--muted)}
+/* EDU */
+.edu-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.edu-school{font-family:var(--fd);font-size:1.3rem;font-weight:900;text-transform:uppercase;margin-bottom:.25rem}
+.edu-deg{font-family:var(--fm);font-size:.72rem;color:var(--red);margin-bottom:.4rem;letter-spacing:.04em}
+.edu-courses{font-size:.82rem;color:var(--muted);line-height:1.6}
+.edu-gpa{font-family:var(--fd);font-size:2.8rem;font-weight:900;color:var(--cream);text-align:right;white-space:nowrap;line-height:1}
+.edu-gpa .sm{font-size:1rem;color:var(--muted)}
+/* Contact links */
+.contact-grid{display:flex;flex-direction:column;gap:.75rem}
+.clink{display:flex;align-items:center;gap:.75rem;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:1rem 1.25rem;color:var(--cream);text-decoration:none;font-family:var(--fm);font-size:.78rem;transition:all .2s;letter-spacing:.04em}
+.clink:hover{border-color:var(--red);color:var(--red)}
+.clink svg{width:16px;height:16px;flex-shrink:0}
+
+/* ── TERMINAL ── */
+#term-ov{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(8px)}
+#term-ov.open{opacity:1;pointer-events:all}
+#term-box{background:#080808;border:1px solid var(--red)30;border-radius:8px;width:min(660px,92vw);max-height:70vh;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(232,0,45,.2)}
+.th{display:flex;align-items:center;gap:.4rem;padding:.7rem 1rem;border-bottom:1px solid var(--border)}
+.td{width:11px;height:11px;border-radius:50%}
+.tt{font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-left:.4rem;flex:1}
+.tc{background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--fm);transition:color .2s;font-size:.9rem}.tc:hover{color:var(--red)}
+#to{flex:1;overflow-y:auto;padding:1.25rem;font-family:var(--fm);font-size:.78rem;line-height:1.8;min-height:180px;max-height:380px}
+.tir{display:flex;align-items:center;padding:.7rem 1.25rem;border-top:1px solid var(--border);gap:.5rem}
+.tp{font-family:var(--fm);font-size:.78rem;color:var(--red)}
+#ti{flex:1;background:none;border:none;outline:none;color:var(--cream);font-family:var(--fm);font-size:.78rem;caret-color:var(--red)}
+
+/* ── LIGHTS OUT ── */
+#lights-out{position:fixed;inset:0;z-index:800;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);transition:opacity .6s}
+#lights-out.gone{opacity:0;pointer-events:none}
+.lo-name{font-family:var(--fd);font-weight:900;font-size:clamp(3rem,8vw,7rem);letter-spacing:-.01em;text-align:center;margin-bottom:.5rem;opacity:0;transform:translateY(20px);transition:opacity .5s,transform .5s}
+.lo-name.show{opacity:1;transform:none}
+.lo-name span{color:var(--red)}
+.lo-sub{font-family:var(--fm);font-size:.8rem;color:var(--muted);letter-spacing:.16em;text-align:center;margin-bottom:3rem;opacity:0;transition:opacity .4s .2s}
+.lo-sub.show{opacity:1}
+.lo-lights{display:flex;gap:1rem;margin-bottom:3rem}
+.lo-l{width:30px;height:30px;border-radius:50%;background:#1a0000;border:2px solid #330000;transition:background .1s,box-shadow .1s}
+.lo-l.on{background:var(--red);box-shadow:0 0 18px var(--red),0 0 50px var(--red)50}
+.lo-l.off{background:#080000;border-color:#110000;box-shadow:none}
+.lo-go{font-family:var(--fd);font-weight:900;font-size:3rem;color:var(--gold);letter-spacing:.1em;opacity:0;transform:scale(.7);transition:opacity .25s,transform .25s}
+.lo-go.show{opacity:1;transform:scale(1)}
+
+/* ── ONBOARDING OVERLAY ── */
+#onboard-ov{position:fixed;inset:0;z-index:700;background:rgba(5,5,8,.88);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
+#onboard-ov.show{opacity:1;pointer-events:all}
+#onboard-card{max-width:420px;margin:1.25rem;padding:1.75rem 1.5rem;background:var(--bg2);border:1px solid var(--red)40;border-radius:6px;box-shadow:0 0 50px rgba(232,0,45,.15)}
+#onboard-card h2{font-family:var(--fd);font-weight:800;font-size:1rem;letter-spacing:.1em;color:var(--red);text-transform:uppercase;margin-bottom:1.1rem}
+.ob-row{display:flex;gap:.85rem;margin-bottom:1rem;align-items:flex-start}
+.ob-icon{flex-shrink:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border2);border-radius:4px;font-family:var(--fm);font-size:.7rem;color:var(--gold)}
+.ob-text{font-family:var(--fb);font-size:.85rem;line-height:1.55;color:var(--titanium)}
+.ob-text strong{color:var(--cream)}
+.ob-dismiss{margin-top:.4rem;width:100%;padding:.65rem;background:transparent;border:1px solid var(--red)60;color:var(--red2);font-family:var(--fm);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:background .2s,color .2s}
+.ob-dismiss:hover{background:var(--red);color:#fff}
+
+/* mobile */
+@media(max-width:600px){
+  #hud{padding:.6rem 1rem}
+  .hud-center{display:none}
+  #pit-sidebar{width:100vw}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- Lights out screen -->
+<div id="lights-out">
+  <div class="lo-sub" id="lo-sub">MS COMPUTER SCIENCE · RUTGERS UNIVERSITY</div>
+  <div class="lo-name" id="lo-name">ANIRUDH <span>BHOGARAJU</span></div>
+  <div class="lo-lights">
+    <div class="lo-l" id="ll1"></div><div class="lo-l" id="ll2"></div>
+    <div class="lo-l" id="ll3"></div><div class="lo-l" id="ll4"></div>
+    <div class="lo-l" id="ll5"></div>
+  </div>
+  <div class="lo-go" id="lo-go">GO GO GO</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-logo"><span class="dot"></span>AB</div>
+  <div class="hud-center">LAS VEGAS STREET CIRCUIT · <span id="hud-sector">SECTOR 1</span></div>
+  <div class="hud-right">
+    <button class="hud-btn" id="ot-btn">$ RADIO</button>
+  </div>
+</div>
+
+<!-- Onboarding overlay -->
+<div id="onboard-ov">
+  <div id="onboard-card">
+    <h2>&gt; How to navigate</h2>
+    <div class="ob-row">
+      <div class="ob-icon">↓</div>
+      <div class="ob-text"><strong>Scroll</strong> to drive around the circuit. Near a pit marker, press <strong>Enter</strong> (or tap the prompt) to open it.</div>
+    </div>
+    <div class="ob-row">
+      <div class="ob-icon">📻</div>
+      <div class="ob-text">Tap <strong>$ RADIO</strong> (top right) to ask anything about me — type a command and it answers live.</div>
+    </div>
+    <button class="ob-dismiss" id="ob-dismiss">Got it — Start Race</button>
+  </div>
+</div>
+
+<!-- Scene -->
+<div id="scene">
+  <canvas id="stars"></canvas>
+  <svg id="skyline-svg" style="position:absolute;bottom:0;left:0;width:100%;height:55%;z-index:2;pointer-events:none" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax meet"></svg>
+  <svg id="track-svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;z-index:3"></svg>
+  <canvas id="speed-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none"></canvas>
+  <div id="f1car">
+    <svg viewBox="0 0 52 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- body -->
+      <ellipse cx="26" cy="12" rx="22" ry="6" fill="#CC0022"/>
+      <!-- nose -->
+      <polygon points="48,12 52,12 50,14 48,14" fill="#CC0022"/>
+      <!-- cockpit -->
+      <ellipse cx="26" cy="10" rx="7" ry="4" fill="#1a1a2e"/>
+      <ellipse cx="26" cy="9.5" rx="5" ry="2.5" fill="#0d0d1a" opacity=".8"/>
+      <!-- front wing -->
+      <rect x="40" y="15" width="10" height="2" rx="1" fill="#CC0022"/>
+      <rect x="39" y="16" width="2" height="3" rx="1" fill="#aaa"/>
+      <!-- rear wing -->
+      <rect x="4" y="7" width="8" height="2" rx="1" fill="#CC0022"/>
+      <rect x="5" y="9" width="2" height="4" rx="1" fill="#aaa"/>
+      <!-- wheels -->
+      <ellipse cx="40" cy="18" rx="4" ry="3.5" fill="#222"/><ellipse cx="40" cy="18" rx="2" ry="1.8" fill="#444"/>
+      <ellipse cx="40" cy="6" rx="4" ry="3.5" fill="#222"/><ellipse cx="40" cy="6" rx="2" ry="1.8" fill="#444"/>
+      <ellipse cx="12" cy="18" rx="4" ry="3.5" fill="#222"/><ellipse cx="12" cy="18" rx="2" ry="1.8" fill="#444"/>
+      <ellipse cx="12" cy="6" rx="4" ry="3.5" fill="#222"/><ellipse cx="12" cy="6" rx="2" ry="1.8" fill="#444"/>
+      <!-- halo -->
+      <path d="M20 8 Q26 5 32 8" stroke="#FFD700" stroke-width="1.5" fill="none"/>
+      <!-- exhaust glow -->
+      <ellipse cx="4" cy="12" rx="3" ry="2" fill="#FF4400" opacity=".7"/>
+    </svg>
+  </div>
+</div>
+
+<!-- Pit markers (positioned by JS) -->
+<div id="pit-markers"></div>
+
+<!-- Enter prompt -->
+<div id="enter-prompt" id="ep">
+  <span class="key">ENTER</span> ENTER PIT STOP
+</div>
+
+<!-- Scroll hint -->
+<div id="scroll-hint">SCROLL TO RACE<span class="arrow">↓</span></div>
+
+<!-- Pit overlay -->
+<div id="pit-overlay">
+  <div id="pit-sidebar">
+    <div class="psb-header">
+      <div class="psb-stop" id="psb-stop">PIT STOP 01</div>
+      <div class="psb-title" id="psb-title">LOADING...</div>
+      <button class="psb-close" id="psb-close">✕ EXIT</button>
+    </div>
+    <div class="psb-body" id="psb-body"></div>
+  </div>
+  <div id="pit-backdrop"></div>
+</div>
+
+<!-- Terminal -->
+<div id="term-ov">
+  <div id="term-box">
+    <div class="th">
+      <div class="td" style="background:#FF5F57"></div>
+      <div class="td" style="background:#FFBD2E"></div>
+      <div class="td" style="background:#28CA41"></div>
+      <span class="tt">anirudh@f1:~$</span>
+      <button class="tc" id="tc-btn">✕</button>
+    </div>
+    <div id="to"></div>
+    <div class="tir"><span class="tp">❯</span><input id="ti" placeholder="type 'help'" autocomplete="off" spellcheck="false"/></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// TRACK PATH — Las Vegas-inspired street circuit
+// Viewbox 0 0 1200 700
+// ═══════════════════════════════════════════════
+const TRACK_PATH = `
+M 600,80
+L 960,80
+Q 1060,80 1060,160
+L 1060,540
+Q 1060,620 980,620
+L 820,620
+Q 750,620 750,560
+L 750,480
+Q 750,440 700,440
+L 500,440
+Q 460,440 460,480
+L 460,540
+Q 460,600 400,620
+L 220,620
+Q 140,620 140,540
+L 140,160
+Q 140,80 240,80
+L 600,80
+`;
+
+// Pit stop positions along the path (t = 0..1)
+const PIT_STOPS = [
+  { t: 0.08,  id:'ps1', label:'PIT LANE',    stop:'PIT STOP 01', title:'RACE\nHISTORY',   section:'experience' },
+  { t: 0.30,  id:'ps2', label:'RACE RESULTS', stop:'PIT STOP 02', title:'RACE\nRESULTS',  section:'projects'   },
+  { t: 0.58,  id:'ps3', label:'CAR SETUP',    stop:'PIT STOP 03', title:'CAR\nSETUP',     section:'skills'     },
+  { t: 0.80,  id:'ps4', label:'ACADEMY',      stop:'PIT STOP 04', title:'RACE\nACADEMY',  section:'education'  },
+  { t: 0.95,  id:'ps5', label:'PODIUM',       stop:'PODIUM',      title:'OPEN\nCOMMS',    section:'contact'    },
+];
+
+// ── Pit stop content ──
+const PIT_CONTENT = {
+  experience: () => `
+    <div class="psb-card">
+      <div class="psb-role">Software Developer Intern</div>
+      <div class="psb-company">RUTGERS UNIVERSITY — EAGLETON INSTITUTE OF POLITICS</div>
+      <div class="psb-date">OCT 2025 – NOV 2025</div>
+      <ul class="psb-bullets">
+        <li>Maintained live pages for <strong>Rutgers Democracy Lab</strong> (democracylab.rutgers.edu) on Drupal CMS serving thousands of visitors</li>
+        <li>Implemented updates across <strong>10+ live pages</strong> — cross-browser compatibility, accessibility standards</li>
+      </ul>
+    </div>
+    <div class="psb-card">
+      <div class="psb-role">Data Science Intern</div>
+      <div class="psb-company">DATA SCIENCE WIZARDS · MUMBAI, INDIA</div>
+      <div class="psb-date">SEP 2023 – SEP 2024</div>
+      <ul class="psb-bullets">
+        <li>Engineered low-latency Python backend via <strong>REST APIs + gRPC</strong>, cutting response time <strong>20%</strong> on UnifyAI</li>
+        <li>Redesigned ML pipelines — preprocessing time <strong>↓30%</strong> across 5+ production models</li>
+        <li>Deployed on <strong>AWS Lambda + EC2</strong> — <strong>10,000+ concurrent requests</strong>, 99%+ uptime</li>
+        <li>Power BI dashboards tracking 8 KPIs — manual reporting <strong>↓40%</strong></li>
+      </ul>
+    </div>
+    <div class="psb-card">
+      <div class="psb-role">Research Assistant</div>
+      <div class="psb-company">ANURAG UNIVERSITY — DEPT. AI & ML · HYDERABAD</div>
+      <div class="psb-date">NOV 2023 – APR 2024</div>
+      <ul class="psb-bullets">
+        <li>Ensemble classifiers (Random Forest, SVM, XGBoost) for Intrusion Detection — <strong>92% accuracy</strong>, false positives ↓15%</li>
+        <li>Evaluated across 3 benchmark datasets; robustness improved 12% via feature engineering</li>
+        <li>Co-authored <strong>"IDS Using ML"</strong> in IJRTI — Paper ID: IJRTI2405048</li>
+      </ul>
+    </div>`,
+
+  projects: () => `
+    <div class="psb-card">
+      <div class="proj-num">01</div>
+      <div class="proj-title">BuyMe — Auction Platform</div>
+      <div class="proj-desc">Full-stack auction with RESTful bidding, ACID transactions, real-time search. 200+ concurrent users, zero data loss.</div>
+      <div class="proj-metric">35%</div><div class="proj-metric-lbl">Faster queries via index optimization</div>
+      <div class="tags"><span class="tag tr">Flask</span><span class="tag tr">MySQL</span><span class="tag tg">AWS EC2</span><span class="tag tw">REST APIs</span></div>
+    </div>
+    <div class="psb-card">
+      <div class="proj-num">02</div>
+      <div class="proj-title">Pneumonia Detection CNN</div>
+      <div class="proj-desc">6-layer CNN on 5,800+ chest X-rays. Dropout 0.5, early stopping. Outperformed logistic regression by 18pp.</div>
+      <div class="proj-metric">95%</div><div class="proj-metric-lbl">Classification accuracy</div>
+      <div class="tags"><span class="tag tr">TensorFlow</span><span class="tag tr">Keras</span><span class="tag tw">Deep Learning</span></div>
+    </div>
+    <div class="psb-card">
+      <div class="proj-num">03</div>
+      <div class="proj-title">CineMatch Recommender</div>
+      <div class="proj-desc">MovieLens 1M — Item-CF + Matrix Factorization with SGD. Full eval: MAE, RMSE, NDCG@10. Live Streamlit demo.</div>
+      <div class="tags"><span class="tag tr">Python</span><span class="tag tg">Numba</span><span class="tag tw">Streamlit</span><span class="tag tw">Matrix Factorization</span></div>
+    </div>
+    <div class="psb-card">
+      <div class="proj-num">04</div>
+      <div class="proj-title">F1 Race Strategy AI Agent</div>
+      <div class="proj-desc">RL agent for F1 pit stop timing, tyre degradation modeling, safety car probability. MDP formulation.</div>
+      <div class="tags"><span class="tag tr">Python</span><span class="tag tg">Reinforcement Learning</span><span class="tag tw">Simulation</span></div>
+    </div>`,
+
+  skills: () => {
+    const skills = [
+      {n:'Python',c:'lang',v:.95},{n:'Java',c:'lang',v:.85},{n:'SQL',c:'lang',v:.88},{n:'JavaScript',c:'lang',v:.75},{n:'R',c:'lang',v:.65},{n:'Node.js',c:'lang',v:.7},
+      {n:'TensorFlow',c:'ml',v:.88},{n:'Keras',c:'ml',v:.88},{n:'NLP',c:'ml',v:.82},{n:'Deep Learning',c:'ml',v:.85},{n:'Computer Vision',c:'ml',v:.78},{n:'LLMs',c:'ml',v:.72},{n:'Pandas/NumPy',c:'ml',v:.92},
+      {n:'AWS EC2',c:'cloud',v:.88},{n:'AWS Lambda',c:'cloud',v:.88},{n:'PostgreSQL',c:'cloud',v:.8},{n:'MySQL',c:'cloud',v:.85},{n:'MongoDB',c:'cloud',v:.72},{n:'Git',c:'cloud',v:.9},
+      {n:'Spring Boot',c:'fw',v:.8},{n:'Django',c:'fw',v:.82},{n:'Flask',c:'fw',v:.85},{n:'React.js',c:'fw',v:.75},{n:'Angular',c:'fw',v:.7},
+    ];
+    const cats = {lang:'LANGUAGE',ml:'AI & ML',cloud:'CLOUD / INFRA',fw:'FRAMEWORK'};
+    return skills.map((s,i)=>`
+      <div class="gauge-row">
+        <div class="gauge-top"><div class="gauge-name">${s.n}</div><div class="gauge-pct">${Math.round(s.v*100)}%</div></div>
+        <div class="gauge-track"><div class="gauge-fill" style="transition-delay:${i*35}ms" data-v="${s.v}"></div></div>
+        <div class="gauge-cat">${cats[s.c]}</div>
+      </div>`).join('');
+  },
+
+  education: () => `
+    <div class="pub-row">
+      <div class="pub-badge">PUBLISHED · IJRTI 2024</div>
+      <div>
+        <div class="pub-title">Intrusion Detection Systems Using Machine Learning</div>
+        <div class="pub-venue">International Journal for Research Trends and Innovation · Paper ID: IJRTI2405048 · Novel feature selection method for AI-driven network security</div>
+      </div>
+    </div>
+    <div class="psb-card" style="margin-top:1.5rem">
+      <div class="edu-row">
+        <div>
+          <div class="edu-school">Rutgers University – New Brunswick</div>
+          <div class="edu-deg">MASTER OF SCIENCE IN COMPUTER SCIENCE</div>
+          <div class="edu-courses">Machine Learning · Deep Learning · NLP · Computer Vision · Big Data · Cloud Computing · Algorithms · Cyber Security</div>
+          <div style="margin-top:.75rem;font-family:var(--fm);font-size:.68rem;color:var(--red);letter-spacing:.06em">EXPECTED JAN 2027 · CPT/OPT ELIGIBLE</div>
+        </div>
+        <div class="edu-gpa">3.60<span class="sm">/4</span><div style="font-family:var(--fm);font-size:.6rem;color:var(--muted);letter-spacing:.1em">GPA</div></div>
+      </div>
+    </div>`,
+
+  contact: () => `
+    <p style="font-size:.95rem;color:var(--muted);margin-bottom:1.5rem;line-height:1.7">Open to SWE and ML engineering roles — internship and new grad full-time. Edison, NJ. No sponsorship needed.</p>
+    <div class="contact-grid">
+      <a href="mailto:anibh02003@gmail.com" class="clink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>anibh02003@gmail.com</a>
+      <a href="https://linkedin.com/in/anirudhbhogaraju" class="clink" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M7 10v7M7 7v.01M11 17v-3.5a2.5 2.5 0 0 1 5 0V17M11 10v7"/></svg>linkedin.com/in/anirudhbhogaraju</a>
+      <a href="https://github.com/sripad1103-byte" class="clink" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>github.com/sripad1103-byte</a>
+      <a href="tel:8483611330" class="clink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.37h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>(848) 361-1330</a>
+    </div>`
+};
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+window.addEventListener('load', () => {
+
+// ── Core element refs (declared early so all functions can use them) ──
+const pitOverlay = document.getElementById('pit-overlay');
+const pitSidebar = document.getElementById('pit-sidebar');
+const enterPrompt = document.getElementById('enter-prompt');
+const hudSector = document.getElementById('hud-sector');
+const scrollHint = document.getElementById('scroll-hint');
+
+// ── Stars ──
+const starCv = document.getElementById('stars');
+const sctx = starCv.getContext('2d');
+starCv.width = window.innerWidth; starCv.height = window.innerHeight;
+for(let i=0;i<220;i++){
+  sctx.beginPath();
+  const x=Math.random()*starCv.width, y=Math.random()*starCv.height*.6;
+  const r=Math.random()*.9+.2;
+  sctx.arc(x,y,r,0,Math.PI*2);
+  sctx.fillStyle=`rgba(255,255,255,${Math.random()*.7+.2})`;
+  sctx.fill();
+}
+// Twinkle a few
+setInterval(()=>{
+  const x=Math.random()*starCv.width, y=Math.random()*starCv.height*.5;
+  sctx.clearRect(x-2,y-2,4,4);
+  sctx.beginPath(); sctx.arc(x,y,.8,0,Math.PI*2);
+  sctx.fillStyle=`rgba(255,255,255,${Math.random()*.8+.1})`;
+  sctx.fill();
+},120);
+
+// ── City skyline ──
+const skyS = document.getElementById('skyline-svg');
+const buildings = [
+  [0,200,80,200],[90,150,60,250],[160,180,50,220],[220,120,70,280],[300,160,55,240],
+  [365,100,80,300],[455,140,65,260],[530,80,90,320],[630,130,70,270],[710,160,55,240],
+  [775,110,75,290],[860,150,60,250],[930,90,85,310],[1025,170,55,230],[1090,140,70,260],[1170,200,30,200],
+];
+buildings.forEach(([x,w,h,y])=>{
+  const g = `<g>
+    <rect x="${x}" y="${y}" width="${w}" height="${400-y}" fill="#0d0d15" stroke="#1a1a2a" stroke-width="1"/>
+    ${Array.from({length:Math.floor(h/20)},(_,i)=>
+      Array.from({length:Math.floor(w/12)},(_,j)=>
+        Math.random()>.45?`<rect x="${x+j*12+2}" y="${y+i*18+4}" width="7" height="9" fill="${Math.random()>.5?'#FFD70022':'#ff880015'}" rx="1"/>`:''
+      ).join('')
+    ).join('')}
+  </g>`;
+  skyS.innerHTML += g;
+});
+
+// ── Speed lines canvas ──
+const spCv = document.getElementById('speed-canvas');
+const spCtx = spCv.getContext('2d');
+spCv.width = window.innerWidth; spCv.height = window.innerHeight;
+const slines = Array.from({length:55},()=>({
+  x:Math.random()*spCv.width, y:Math.random()*spCv.height,
+  len:Math.random()*50+15, spd:Math.random()*1.8+.4,
+  a:Math.random()*.14+.03, w:Math.random()*.7+.2
+}));
+function drawSpeedLines(){
+  spCtx.clearRect(0,0,spCv.width,spCv.height);
+  slines.forEach(l=>{
+    spCtx.beginPath(); spCtx.moveTo(l.x,l.y); spCtx.lineTo(l.x+l.len,l.y);
+    spCtx.strokeStyle=`rgba(232,0,45,${l.a})`; spCtx.lineWidth=l.w; spCtx.stroke();
+    l.x-=l.spd; if(l.x+l.len<0){l.x=spCv.width+l.len; l.y=Math.random()*spCv.height}
+  });
+  requestAnimationFrame(drawSpeedLines);
+}
+drawSpeedLines();
+
+// ── Path helpers (must come before track SVG build) ──
+const pathEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+pathEl.setAttribute('d', TRACK_PATH);
+const pathLen = pathEl.getTotalLength();
+function getPointAt(t) {
+  return pathEl.getPointAtLength(t * pathLen);
+}
+function getAngleAt(t) {
+  const d = 0.003;
+  const t1 = Math.max(0, t-d), t2 = Math.min(1, t+d);
+  const p1 = getPointAt(t1), p2 = getPointAt(t2);
+  return Math.atan2(p2.y-p1.y, p2.x-p1.x) * 180/Math.PI;
+}
+
+// ── Build track SVG ──
+const tsvg = document.getElementById('track-svg');
+// Road (wide, dark)
+const roadPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+roadPath.setAttribute('d', TRACK_PATH);
+roadPath.setAttribute('fill','none');
+roadPath.setAttribute('stroke','#1e1e1e');
+roadPath.setAttribute('stroke-width','52');
+roadPath.setAttribute('stroke-linecap','round');
+roadPath.setAttribute('stroke-linejoin','round');
+tsvg.appendChild(roadPath);
+// Kerbs (alternating red/white dots)
+const kerbPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+kerbPath.setAttribute('d', TRACK_PATH);
+kerbPath.setAttribute('fill','none');
+kerbPath.setAttribute('stroke','#2a0008');
+kerbPath.setAttribute('stroke-width','56');
+kerbPath.setAttribute('stroke-linecap','round');
+kerbPath.setAttribute('stroke-linejoin','round');
+tsvg.insertBefore(kerbPath, roadPath);
+// Center dashes
+const dashPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+dashPath.setAttribute('d', TRACK_PATH);
+dashPath.setAttribute('fill','none');
+dashPath.setAttribute('stroke','#ffffff18');
+dashPath.setAttribute('stroke-width','1.5');
+dashPath.setAttribute('stroke-dasharray','18 14');
+dashPath.setAttribute('stroke-linecap','round');
+tsvg.appendChild(dashPath);
+// Glow under car (red neon floor)
+const glowPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+glowPath.setAttribute('d', TRACK_PATH);
+glowPath.setAttribute('fill','none');
+glowPath.setAttribute('stroke','rgba(232,0,45,0.06)');
+glowPath.setAttribute('stroke-width','40');
+glowPath.setAttribute('stroke-linecap','round');
+tsvg.appendChild(glowPath);
+// Track outline (bright edge)
+const outPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+outPath.setAttribute('d', TRACK_PATH);
+outPath.setAttribute('fill','none');
+outPath.setAttribute('stroke','#333');
+outPath.setAttribute('stroke-width','58');
+outPath.setAttribute('stroke-linecap','round');
+outPath.setAttribute('stroke-linejoin','round');
+tsvg.insertBefore(outPath, kerbPath);
+// DRS zone markers
+[0.05,0.5].forEach(t=>{
+  const pt = getPointAt(t);
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x', pt.x-25); rect.setAttribute('y', pt.y-2);
+  rect.setAttribute('width','50'); rect.setAttribute('height','4');
+  rect.setAttribute('fill','rgba(0,200,100,0.5)'); rect.setAttribute('rx','2');
+  tsvg.appendChild(rect);
+  const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+  lbl.setAttribute('x', pt.x); lbl.setAttribute('y', pt.y-10);
+  lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('fill','#00cc66');
+  lbl.setAttribute('font-family','Share Tech Mono'); lbl.setAttribute('font-size','9');
+  lbl.textContent='DRS'; tsvg.appendChild(lbl);
+});
+
+// ── SVG viewport transform ──
+// Map SVG coords to screen
+function svgToScreen(x, y) {
+  const svg = tsvg;
+  const rect = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  const scaleX = rect.width / vb.width;
+  const scaleY = rect.height / vb.height;
+  const scale = Math.min(scaleX, scaleY);
+  const offsetX = (rect.width - vb.width*scale)/2 + rect.left;
+  const offsetY = (rect.height - vb.height*scale)/2 + rect.top;
+  return { x: x*scale + offsetX, y: y*scale + offsetY };
+}
+
+// ── Car element ──
+const car = document.getElementById('f1car');
+
+// ── Pit markers ──
+const markersContainer = document.getElementById('pit-markers');
+const markerEls = {};
+PIT_STOPS.forEach((ps, idx) => {
+  const pt = getPointAt(ps.t);
+  const sc = svgToScreen(pt.x, pt.y);
+  const el = document.createElement('div');
+  el.className = 'pit-marker';
+  el.id = ps.id;
+  el.style.left = sc.x + 'px';
+  el.style.top = sc.y + 'px';
+  el.innerHTML = `
+    <div class="pm-outer"><div class="pm-num">${idx+1}</div></div>
+    <div class="pm-label">${ps.label}</div>`;
+  el.addEventListener('click', () => openPit(ps.section, ps.stop, ps.title, idx));
+  markersContainer.appendChild(el);
+  markerEls[ps.id] = el;
+});
+
+// Reposition on resize
+window.addEventListener('resize', () => {
+  PIT_STOPS.forEach(ps => {
+    const pt = getPointAt(ps.t);
+    const sc = svgToScreen(pt.x, pt.y);
+    markerEls[ps.id].style.left = sc.x + 'px';
+    markerEls[ps.id].style.top = sc.y + 'px';
+  });
+});
+
+// ── Scroll → car position (infinite laps) ──
+let carT = 0, carTTarget = 0;
+const totalScrollH = 4000; // one full lap worth of scroll
+let virtualScroll = 0;
+let nearPit = null;
+
+function updateScroll(delta) {
+  virtualScroll += delta;
+  // No clamping — allow infinite forward scrolling
+  // t wraps 0→1→0→1 via modulo so car loops the track
+  carTTarget = ((virtualScroll / totalScrollH) % 1 + 1) % 1;
+}
+
+// Wheel / touch scroll — skip when pit is open so sidebar scrolls freely
+let touchStartY = 0;
+
+window.addEventListener('wheel', e => {
+  if (pitOverlay.classList.contains('open')) return; // let sidebar scroll natively
+  e.preventDefault();
+  updateScroll(e.deltaY * .8);
+}, { passive: false });
+window.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+window.addEventListener('touchmove', e => {
+  if (pitOverlay.classList.contains('open')) return; // let sidebar scroll natively
+  e.preventDefault();
+  const dy = touchStartY - e.touches[0].clientY;
+  touchStartY = e.touches[0].clientY;
+  updateScroll(dy * 1.2);
+}, { passive: false });
+
+// Keyboard
+window.addEventListener('keydown', e => {
+  if(e.repeat) return;
+  if(e.key==='ArrowDown'||e.key==='PageDown'){ e.preventDefault(); updateScroll(120); return; }
+  if(e.key==='ArrowUp'||e.key==='PageUp'){ e.preventDefault(); updateScroll(-120); return; }
+  if(e.key===' '){ e.preventDefault(); } // stop browser scroll on space
+  if(e.key==='Escape'){ closePit(); return; }
+  if(e.key==='Enter'||e.key===' '){
+    e.preventDefault();
+    if(pitOverlay.classList.contains('open')){ closePit(); return; }
+    if(nearPit !== null){
+      const ps = PIT_STOPS[nearPit];
+      openPit(ps.section, ps.stop, ps.title, nearPit);
+    }
+  }
+});
+
+let hintGone = false;
+
+function animateCar() {
+  // Lerp with wrap-around: always take the shortest arc around the loop
+  let diff = carTTarget - carT;
+  if (diff > 0.5) diff -= 1;
+  if (diff < -0.5) diff += 1;
+  carT = ((carT + diff * 0.06) + 1) % 1;
+
+  const pt = getPointAt(carT);
+  const angle = getAngleAt(carT);
+  const sc = svgToScreen(pt.x, pt.y);
+  car.style.left = sc.x + 'px';
+  car.style.top = sc.y + 'px';
+  car.style.transform = `translate(-50%,-50%) rotate(${angle}deg)`;
+
+  // Detect near pit (wrap-aware distance)
+  let closestIdx = -1, closestDist = 0.04;
+  PIT_STOPS.forEach((ps, i) => {
+    let dist = Math.abs(carT - ps.t);
+    if (dist > 0.5) dist = 1 - dist; // wrap-around
+    if(dist < closestDist){ closestDist=dist; closestIdx=i; }
+  });
+
+  // Update markers
+  PIT_STOPS.forEach((ps, i) => {
+    const el = markerEls[ps.id];
+    el.classList.toggle('active', i===closestIdx);
+    el.classList.toggle('near', Math.abs(carT-ps.t)<0.07);
+  });
+
+  // Enter prompt — only update nearPit when pit is closed
+  if(!pitOverlay.classList.contains('open')) {
+    if(closestIdx >= 0) {
+      nearPit = closestIdx;
+      enterPrompt.classList.add('show');
+    } else {
+      nearPit = null;
+      enterPrompt.classList.remove('show');
+    }
+  }
+
+  // Sector HUD
+  const sector = carT < 0.33 ? 'SECTOR 1' : carT < 0.66 ? 'SECTOR 2' : 'SECTOR 3';
+  const lap = Math.floor(virtualScroll / totalScrollH) + 1;
+  hudSector.textContent = `LAP ${lap} · ${sector}`;
+
+  // Hide scroll hint once moving
+  if(carT > 0.02 && !hintGone){ hintGone=true; scrollHint.style.opacity='0'; }
+
+  requestAnimationFrame(animateCar);
+}
+
+// Initial car position
+(()=>{ const pt=getPointAt(0); const sc=svgToScreen(pt.x,pt.y); car.style.left=sc.x+'px'; car.style.top=sc.y+'px'; })();
+animateCar();
+
+// ── Open pit ──
+function openPit(section, stop, title, idx) {
+  document.getElementById('psb-stop').textContent = stop;
+  document.getElementById('psb-title').innerHTML = title.replace('\n','<br>');
+  const body = document.getElementById('psb-body');
+  body.innerHTML = PIT_CONTENT[section]();
+  document.getElementById('pit-sidebar').scrollTop = 0;
+  pitOverlay.classList.add('open');
+  enterPrompt.classList.remove('show');
+  if(document.activeElement) document.activeElement.blur(); // prevent Enter re-firing on focused btn
+  setTimeout(()=>{
+    body.querySelectorAll('.gauge-fill').forEach(g => g.classList.add('go'));
+  }, 120);
+}
+function closePit() {
+  pitOverlay.classList.remove('open');
+}
+document.getElementById('psb-close').addEventListener('click', closePit);
+document.getElementById('pit-backdrop').addEventListener('click', closePit);
+enterPrompt.addEventListener('click', () => {
+  if(nearPit !== null) {
+    const ps = PIT_STOPS[nearPit];
+    openPit(ps.section, ps.stop, ps.title, nearPit);
+  }
+});
+
+// ── Lights Out ──
+const lo = document.getElementById('lights-out');
+const lls = [1,2,3,4,5].map(i=>document.getElementById('ll'+i));
+setTimeout(()=>document.getElementById('lo-name').classList.add('show'),200);
+setTimeout(()=>document.getElementById('lo-sub').classList.add('show'),350);
+let i=0; const lon=setInterval(()=>{ if(i<5){lls[i].classList.add('on');i++}else{clearInterval(lon);setTimeout(goRace,700)} },350);
+function goRace(){
+  lls.forEach(l=>{l.classList.remove('on');l.classList.add('off')});
+  document.getElementById('lo-go').classList.add('show');
+  setTimeout(()=>lo.classList.add('gone'),900);
+  setTimeout(showOnboard,1100);
+}
+
+// ── Onboarding overlay ──
+const onboardOv=document.getElementById('onboard-ov');
+let onboardTimer=null;
+function showOnboard(){
+  onboardOv.classList.add('show');
+  onboardTimer=setTimeout(hideOnboard,7000);
+}
+function hideOnboard(){
+  onboardOv.classList.remove('show');
+  clearTimeout(onboardTimer);
+}
+document.getElementById('ob-dismiss').addEventListener('click',hideOnboard);
+onboardOv.addEventListener('click',e=>{if(e.target===onboardOv)hideOnboard()});
+
+// ── Terminal ──
+const tov=document.getElementById('term-ov'),tto=document.getElementById('to'),tti=document.getElementById('ti');
+const tcmds={
+  help:{l:['<span style="color:var(--red)">TEAM RADIO COMMANDS</span>','about · skills · experience · projects · education · contact · f1 · fun · clear · exit']},
+  about:{l:['<span style="color:var(--red)">DRIVER: Anirudh Bhogaraju</span>','MS CS @ Rutgers · GPA 3.60 · Edison NJ · CPT/OPT','200+ LeetCode · Published researcher · Watches every race']},
+  skills:{l:['<span style="color:var(--red)">CAR SETUP</span>','Python · Java · SQL · JavaScript · R · Node.js','TensorFlow · Keras · NLP · Deep Learning · CV · LLMs','AWS EC2/Lambda/EKS · PostgreSQL · MySQL · MongoDB','Spring Boot · Django · Flask · React · Angular']},
+  experience:{l:['<span style="color:var(--red)">RACE HISTORY</span>','OCT–NOV 2025 · Software Dev Intern · Rutgers Eagleton','SEP 2023–24  · Data Science Intern · Data Science Wizards','NOV 2023–24  · Research Assistant · Anurag University']},
+  projects:{l:['<span style="color:var(--red)">RACE RESULTS</span>','P1 · BuyMe Auction Platform — Flask/MySQL/AWS · 35% faster','P2 · Pneumonia CNN — 95% accuracy · 5800+ X-rays','P3 · CineMatch Recommender — MovieLens 1M · Item-CF + MF','P4 · F1 Strategy AI Agent — RL pit stop optimizer']},
+  education:{l:['<span style="color:var(--red)">RACE ACADEMY</span>','Rutgers University – New Brunswick','MS Computer Science · GPA 3.60/4.00 · Expected Jan 2027','Published: IJRTI2405048 · IDS Using ML']},
+  contact:{l:['<span style="color:var(--red)">OPEN COMMS</span>','anibh02003@gmail.com','(848) 361-1330','linkedin.com/in/anirudhbhogaraju','github.com/sripad1103-byte']},
+  f1:{l:['<span style="color:var(--gold)">F1 MODE</span>','Favourite circuit: Las Vegas (obviously)','Built an F1 AI race strategy agent — see projects','Box box box. New tyres. Push push push.','Gap: 0.932s. DRS enabled. Let him race.']},
+  fun:{l:['<span style="color:var(--gold)">OFF-TRACK</span>','Watches every F1 race · Plays cricket · Hits the gym','Progressive overload grind in progress','Currently on NeetCode 150 rotation','Edison NJ — yes, like Thomas Edison']},
+};
+let hist=[],hi=-1;
+function tprint(lines){lines.forEach(l=>{const d=document.createElement('div');d.innerHTML=l;d.style.fontFamily='var(--fm)';d.style.fontSize='.78rem';d.style.color='var(--titanium)';d.style.marginBottom='.1rem';tto.appendChild(d)});tto.scrollTop=tto.scrollHeight}
+function tcmd(raw){
+  const cmd=raw.trim().toLowerCase();
+  const e=document.createElement('div');e.style.color='var(--red)';e.style.fontFamily='var(--fm)';e.style.fontSize='.78rem';e.textContent='❯ '+raw;tto.appendChild(e);
+  if(cmd==='clear'){tto.innerHTML='';return}
+  if(cmd==='exit'){closeT();return}
+  if(tcmds[cmd])tprint(tcmds[cmd].l);
+  else if(cmd)tprint([`command not found: ${cmd}`]);
+  tto.scrollTop=tto.scrollHeight;
+}
+function openT(){tov.classList.add('open');tto.innerHTML='';tprint(['<span style="color:var(--red)">TEAM RADIO · F1 PORTFOLIO</span>','Type \'help\' for commands.','']);setTimeout(()=>tti.focus(),50)}
+function closeT(){tov.classList.remove('open')}
+document.getElementById('ot-btn').addEventListener('click',openT);
+document.getElementById('tc-btn').addEventListener('click',closeT);
+tov.addEventListener('click',e=>{if(e.target===tov)closeT()});
+tti.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const v=tti.value;if(v.trim())hist.unshift(v);hi=-1;tcmd(v);tti.value=''}
+  if(e.key==='ArrowUp'){hi=Math.min(hi+1,hist.length-1);tti.value=hist[hi]||''}
+  if(e.key==='ArrowDown'){hi=Math.max(hi-1,-1);tti.value=hi>=0?hist[hi]:''}
+  if(e.key==='Escape')closeT();
+});
+document.getElementById('term-box').addEventListener('click',()=>tti.focus());
+document.addEventListener('keydown',e=>{if(e.key==='`')openT()});
+
+}); // end load
+</script>
+</body>
+</html>
